@@ -160,7 +160,7 @@ export function FomoSurvey() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 maxLength={40}
-                className="focus-ring mt-2 h-14 w-full rounded-panel border border-white/70 bg-white/60 px-4 text-lg text-ink shadow-inner outline-none backdrop-blur"
+                className="glass-field focus-ring mt-2 h-14 w-full rounded-panel px-4 text-lg text-ink outline-none"
                 placeholder="例如：小陈"
               />
               {error ? <p className="mt-4 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
@@ -192,7 +192,7 @@ export function FomoSurvey() {
                   已完成 {answeredCount}/{QUESTIONS.length}，还剩 {unansweredCount} 题
                 </div>
               </div>
-              <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/70">
+              <div className="glass-track mt-4 h-3 overflow-hidden rounded-full">
                 <motion.div
                   className="h-full rounded-full bg-jade"
                   initial={false}
@@ -218,14 +218,14 @@ export function FomoSurvey() {
                       <h3 className="mt-1 text-2xl font-semibold text-ink">{dimension.name}</h3>
                       <p className="mt-2 max-w-2xl text-sm leading-6 text-moss">{dimension.description}</p>
                     </div>
-                    <div className="rounded-panel bg-white/50 px-4 py-3 text-sm font-semibold text-moss">
+                    <div className="glass-card rounded-panel px-4 py-3 text-sm font-semibold text-moss">
                       当前 {getDimensionDraftScore(answers, dimension.id)}/20
                     </div>
                   </div>
 
                   <div className="mt-5 space-y-4">
                     {dimension.questions.map((question) => (
-                      <article key={question.id} className="rounded-panel border border-white/70 bg-white/40 p-4">
+                      <article key={question.id} className="glass-card rounded-panel p-4">
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-jade">{question.id}</p>

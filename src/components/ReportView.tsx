@@ -64,15 +64,15 @@ export function ReportView({ response, showAnswers = false, adminMode = false }:
             <h1 className="mt-3 text-3xl font-semibold leading-tight text-ink sm:text-5xl">
               {response.username} 的 FoMO 反馈
             </h1>
-            <div className="mt-5 inline-flex items-center gap-2 rounded-panel bg-white/55 px-4 py-3 text-sm text-moss">
+            <div className="glass-card mt-5 inline-flex items-center gap-2 rounded-panel px-4 py-3 text-sm text-moss">
               <CalendarClock size={17} />
               {formatDate(response.created_at)}
             </div>
             <p className="mt-6 text-base leading-8 text-moss">{report.summary}</p>
-            <p className="mt-4 rounded-panel bg-white/55 px-4 py-3 text-sm leading-6 text-moss">{report.disclaimer}</p>
+            <p className="glass-card mt-4 rounded-panel px-4 py-3 text-sm leading-6 text-moss">{report.disclaimer}</p>
           </div>
 
-          <div className="rounded-panel border border-white/70 bg-white/45 p-5">
+          <div className="glass-card rounded-panel p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-moss">总分</p>
@@ -94,7 +94,7 @@ export function ReportView({ response, showAnswers = false, adminMode = false }:
                       {dimensionReport.score}/20 · {dimensionReport.levelLabel}
                     </span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-white/80">
+                  <div className="glass-track h-3 overflow-hidden rounded-full">
                     <motion.div
                       className="h-full rounded-full bg-jade"
                       initial={{ width: 0 }}
@@ -125,7 +125,7 @@ export function ReportView({ response, showAnswers = false, adminMode = false }:
                 </p>
                 <h2 className="mt-1 text-2xl font-semibold text-ink">{dimensionReport.name}</h2>
               </div>
-              <span className="rounded-panel bg-white/60 px-3 py-2 text-sm font-semibold text-moss">
+              <span className="glass-card rounded-panel px-3 py-2 text-sm font-semibold text-moss">
                 {dimensionScores[dimensionReport.id]}/20
               </span>
             </div>
@@ -165,7 +165,7 @@ function AnswerDetail({ answers }: { answers: AnswerMap }) {
       <h2 className="text-2xl font-semibold text-ink">逐题分数</h2>
       <div className="mt-5 space-y-5">
         {DIMENSIONS.map((dimension) => (
-          <div key={dimension.id} className="rounded-panel border border-white/70 bg-white/40 p-4">
+          <div key={dimension.id} className="glass-card rounded-panel p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h3 className="text-lg font-semibold text-ink">{dimension.name}</h3>
               <span className="text-sm font-semibold text-moss">
@@ -180,7 +180,7 @@ function AnswerDetail({ answers }: { answers: AnswerMap }) {
               {QUESTIONS.filter((question) => question.dimensionId === dimension.id).map((question) => (
                 <div
                   key={question.id}
-                  className="grid gap-3 rounded-panel bg-white/45 p-3 text-sm sm:grid-cols-[4rem_1fr_9rem]"
+                  className="glass-card grid gap-3 rounded-panel p-3 text-sm sm:grid-cols-[4rem_1fr_9rem]"
                 >
                   <span className="font-semibold text-jade">{question.id}</span>
                   <span className="leading-6 text-ink">{question.text}</span>

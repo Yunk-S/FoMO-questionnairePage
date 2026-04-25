@@ -149,7 +149,7 @@ export function FeedbackDashboard() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="focus-ring mt-2 h-14 w-full rounded-panel border border-white/70 bg-white/60 px-4 text-ink outline-none backdrop-blur"
+            className="glass-field focus-ring mt-2 h-14 w-full rounded-panel px-4 text-ink outline-none"
           />
           {error ? <p className="mt-4 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
           <button
@@ -208,7 +208,7 @@ export function FeedbackDashboard() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] border-collapse text-left text-sm">
-            <thead className="bg-white/50 text-moss">
+            <thead className="bg-white/20 text-moss backdrop-blur-md">
               <tr>
                 <th className="px-5 py-4 font-semibold">用户</th>
                 <th className="px-5 py-4 font-semibold">提交时间</th>
