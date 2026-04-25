@@ -8,7 +8,7 @@ import { DIMENSIONS } from "@/lib/questionnaire";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import type { ResponseListItem } from "@/lib/types";
 
-type LoadState = "checking" | "locked" | "ready" | "error";
+type LoadState = "locked" | "ready" | "error";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -20,22 +20,35 @@ function formatDate(value: string) {
 }
 
 export function FeedbackDashboard() {
-  const [state, setState] = useState<LoadState>("checking");
+  const [state, setState] = useState<LoadState>("locked");
+  const [adminToken, setAdminToken] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [records, setRecords] = useState<ResponseListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState("等待连接");
 
-  const loadResponses = useCallback(async () => {
+  const loadResponses = useCallback(async (token = adminToken) => {
+    if (!token) {
+      setRecords([]);
+      setState("locked");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/admin/responses", { cache: "no-store" });
+      const response = await fetch("/api/admin/responses", {
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
       const data = (await response.json()) as { responses?: ResponseListItem[]; error?: string };
 
       if (response.status === 401) {
+        setAdminToken(null);
         setState("locked");
         setRecords([]);
         return;
@@ -53,14 +66,10 @@ export function FeedbackDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminToken]);
 
   useEffect(() => {
-    void loadResponses();
-  }, [loadResponses]);
-
-  useEffect(() => {
-    if (state !== "ready") {
+    if (state !== "ready" || !adminToken) {
       return;
     }
 
@@ -74,7 +83,7 @@ export function FeedbackDashboard() {
       .channel("response-events")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "response_events" }, () => {
         setRealtimeStatus("收到新记录");
-        void loadResponses();
+        void loadResponses(adminToken);
       })
       .subscribe((status) => {
         setRealtimeStatus(status === "SUBSCRIBED" ? "实时同步中" : "连接中");
@@ -83,7 +92,7 @@ export function FeedbackDashboard() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadResponses, state]);
+  }, [adminToken, loadResponses, state]);
 
   const stats = useMemo(() => {
     const count = records.length;
@@ -105,31 +114,21 @@ export function FeedbackDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password })
       });
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as { error?: string; token?: string };
 
-      if (!response.ok) {
+      if (!response.ok || !data.token) {
         throw new Error(data.error || "登录失败");
       }
 
+      setAdminToken(data.token);
       setPassword("");
-      await loadResponses();
+      await loadResponses(data.token);
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "登录失败");
       setState("locked");
     } finally {
       setLoading(false);
     }
-  }
-
-  if (state === "checking") {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-5">
-        <div className="glass-panel flex items-center gap-3 rounded-panel p-5 text-moss">
-          <Loader2 className="animate-spin" size={20} />
-          正在读取反馈页
-        </div>
-      </div>
-    );
   }
 
   if (state === "locked") {

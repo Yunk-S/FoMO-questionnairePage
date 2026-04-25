@@ -1,8 +1,6 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { cookies } from "next/headers";
 
-const COOKIE_NAME = "fomo_admin_session";
-const SESSION_DURATION_MS = 1000 * 60 * 60 * 12;
+const SESSION_DURATION_MS = 1000 * 60 * 30;
 
 function getSecret() {
   return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "local-development-secret";
@@ -40,20 +38,11 @@ export function isValidAdminToken(token?: string) {
   return timingSafeEqual(expectedBuffer, signatureBuffer);
 }
 
-export async function isAdminRequest() {
-  const cookieStore = await cookies();
-  return isValidAdminToken(cookieStore.get(COOKIE_NAME)?.value);
-}
+export function isAdminRequest(request: Request) {
+  const authorization = request.headers.get("authorization");
+  const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : undefined;
 
-export async function setAdminCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: SESSION_DURATION_MS / 1000,
-    path: "/"
-  });
+  return isValidAdminToken(token);
 }
 
 export function verifyAdminPassword(password: unknown) {

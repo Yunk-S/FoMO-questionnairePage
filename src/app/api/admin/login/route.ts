@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminToken, setAdminCookie, verifyAdminPassword } from "@/lib/admin-auth";
+import { createAdminToken, verifyAdminPassword } from "@/lib/admin-auth";
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -20,7 +20,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "管理口令不正确" }, { status: 401 });
   }
 
-  await setAdminCookie(createAdminToken());
-
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, token: createAdminToken() });
 }

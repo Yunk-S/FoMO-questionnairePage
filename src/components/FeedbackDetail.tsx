@@ -1,87 +1,114 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ReportView } from "@/components/ReportView";
 import type { ResponseDetail } from "@/lib/types";
 
 export function FeedbackDetail({ id }: { id: string }) {
   const [response, setResponse] = useState<ResponseDetail | null>(null);
+  const [password, setPassword] = useState("");
+  const [adminToken, setAdminToken] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [locked, setLocked] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function loadDetail() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const result = await fetch(`/api/admin/responses/${id}`, { cache: "no-store" });
-        const data = (await result.json()) as { response?: ResponseDetail; error?: string };
-
-        if (result.status === 401) {
-          setLocked(true);
-          return;
-        }
-
-        if (!result.ok || !data.response) {
-          throw new Error(data.error || "读取详情失败");
-        }
-
-        setResponse(data.response);
-      } catch (detailError) {
-        setError(detailError instanceof Error ? detailError.message : "读取详情失败");
-      } finally {
-        setLoading(false);
-      }
+  async function loadDetail(token = adminToken) {
+    if (!token) {
+      setResponse(null);
+      return;
     }
 
-    void loadDetail();
-  }, [id]);
+    setLoading(true);
+    setError("");
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center px-5">
-        <div className="glass-panel flex items-center gap-3 rounded-panel p-5 text-moss">
-          <Loader2 className="animate-spin" size={20} />
-          正在读取用户详情
-        </div>
-      </div>
-    );
+    try {
+      const result = await fetch(`/api/admin/responses/${id}`, {
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = (await result.json()) as { response?: ResponseDetail; error?: string };
+
+      if (result.status === 401) {
+        setAdminToken(null);
+        setResponse(null);
+        throw new Error("管理口令已过期，请重新输入");
+      }
+
+      if (!result.ok || !data.response) {
+        throw new Error(data.error || "读取详情失败");
+      }
+
+      setResponse(data.response);
+    } catch (detailError) {
+      setError(detailError instanceof Error ? detailError.message : "读取详情失败");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (locked) {
-    return (
-      <div className="mx-auto flex min-h-screen max-w-xl items-center px-5">
-        <div className="glass-panel rounded-panel p-6">
-          <h1 className="text-2xl font-semibold text-ink">需要管理口令</h1>
-          <p className="mt-3 text-sm leading-6 text-moss">请先进入反馈页完成管理登录。</p>
-          <Link
-            href="/feedback"
-            className="glass-button mt-5 inline-flex min-h-11 items-center rounded-panel px-4 text-sm font-semibold text-moss"
-          >
-            前往反馈页
-          </Link>
-        </div>
-      </div>
-    );
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const loginResult = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      const loginData = (await loginResult.json()) as { error?: string; token?: string };
+
+      if (!loginResult.ok || !loginData.token) {
+        throw new Error(loginData.error || "登录失败");
+      }
+
+      setAdminToken(loginData.token);
+      setPassword("");
+      await loadDetail(loginData.token);
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : "登录失败");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (error || !response) {
+  if (!response) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-xl items-center px-5">
-        <div className="glass-panel rounded-panel p-6">
-          <h1 className="text-2xl font-semibold text-ink">无法读取详情</h1>
-          <p className="mt-3 text-sm leading-6 text-coral">{error || "没有找到这份记录"}</p>
-          <Link
-            href="/feedback"
-            className="glass-button mt-5 inline-flex min-h-11 items-center rounded-panel px-4 text-sm font-semibold text-moss"
+      <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-5 py-10">
+        <form onSubmit={handleLogin} className="glass-panel w-full rounded-panel p-6 sm:p-8">
+          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-panel bg-ink text-white">
+            <LockKeyhole size={24} />
+          </div>
+          <p className="text-sm font-semibold tracking-[0.2em] text-coral">ADMIN ACCESS</p>
+          <h1 className="mt-2 text-3xl font-semibold text-ink">用户详情</h1>
+          <p className="mt-3 text-sm leading-6 text-moss">请输入管理口令后查看这份答题记录。</p>
+          <label className="mt-7 block text-sm font-semibold text-moss" htmlFor="admin-detail-password">
+            管理口令
+          </label>
+          <input
+            id="admin-detail-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="glass-field focus-ring mt-2 h-14 w-full rounded-panel px-4 text-ink outline-none"
+          />
+          {error ? <p className="mt-4 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
+          <button
+            type="submit"
+            disabled={loading}
+            className="glass-button mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-panel px-5 font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-60"
           >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
+            查看用户详情
+          </button>
+          <Link href="/feedback" className="mt-5 inline-block text-sm font-semibold text-moss focus-ring rounded-panel">
             返回反馈页
           </Link>
-        </div>
+        </form>
       </div>
     );
   }

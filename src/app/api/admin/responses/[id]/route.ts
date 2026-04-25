@@ -8,8 +8,8 @@ type RouteParams = {
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, { params }: RouteParams) {
-  if (!(await isAdminRequest())) {
+export async function GET(request: Request, { params }: RouteParams) {
+  if (!isAdminRequest(request)) {
     return NextResponse.json({ error: "未登录或会话已过期" }, { status: 401 });
   }
 
