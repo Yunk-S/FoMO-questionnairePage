@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, CheckCircle2, ClipboardList, Loader2, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,9 +25,13 @@ function hasCompleteAnswers(answers: DraftAnswers): answers is AnswerMap {
   return QUESTIONS.every((question) => Number.isInteger(answers[question.id]));
 }
 
+function createAnonymousUsername() {
+  return `匿名受试者-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
 export function FomoSurvey() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [anonymousUsername] = useState(createAnonymousUsername);
   const [started, setStarted] = useState(false);
   const [answers, setAnswers] = useState<DraftAnswers>({});
   const [error, setError] = useState("");
@@ -46,16 +50,7 @@ export function FomoSurvey() {
     []
   );
 
-  function handleStart(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmed = username.trim();
-
-    if (!trimmed) {
-      setError("请输入用户名后开始答题");
-      return;
-    }
-
-    setUsername(trimmed);
+  function handleStart() {
     setError("");
     setStarted(true);
   }
@@ -68,7 +63,7 @@ export function FomoSurvey() {
     setError("");
 
     if (!hasCompleteAnswers(answers)) {
-      setError("请完成所有题目后提交");
+      setError("请完成所有题目后再提交。");
       return;
     }
 
@@ -81,7 +76,7 @@ export function FomoSurvey() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username,
+          username: anonymousUsername,
           answers
         })
       });
@@ -93,7 +88,7 @@ export function FomoSurvey() {
 
       router.push(`/result/${data.id}`);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "提交失败，请稍后重试");
+      setError(submitError instanceof Error ? submitError.message : "提交失败，请稍后重试。");
       setSubmitting(false);
     }
   }
@@ -101,7 +96,7 @@ export function FomoSurvey() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 sm:px-8 lg:px-10">
       <header className="flex items-center justify-between gap-4 py-2">
-        <Link href="/" className="flex items-center gap-3 focus-ring rounded-panel">
+        <Link href="/" className="focus-ring flex items-center gap-3 rounded-panel">
           <span className="flex h-11 w-11 items-center justify-center rounded-panel bg-ink text-white shadow-soft">
             <ClipboardList size={20} />
           </span>
@@ -135,7 +130,7 @@ export function FomoSurvey() {
                 社交媒体情境下的 FoMO 倾向测评
               </h1>
               <p className="mt-6 max-w-xl text-base leading-8 text-moss sm:text-lg">
-                16 道题，覆盖错失动机、错失认知、错失情绪和错失行为四个维度。提交后会生成个人报告，并进入后台统计。
+                16 道题，覆盖错失动机、错失认知、错失情绪和错失行为四个维度。提交后生成个人报告，并同步进入反馈统计。
               </p>
               <div className="mt-8 grid max-w-xl grid-cols-2 gap-3 sm:grid-cols-4">
                 {DIMENSIONS.map((dimension) => (
@@ -147,31 +142,26 @@ export function FomoSurvey() {
               </div>
             </div>
 
-            <form onSubmit={handleStart} className="glass-panel rounded-panel p-5 sm:p-7">
-              <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-panel bg-jade text-white shadow-soft">
-                <UserRound size={25} />
+            <div className="glass-panel flex min-h-[320px] flex-col justify-center rounded-panel p-6 sm:p-8">
+              <div className="max-w-sm">
+                <p className="text-sm font-semibold tracking-[0.22em] text-coral">ANONYMOUS MODE</p>
+                <h2 className="mt-4 text-3xl font-semibold text-ink">匿名开始测试</h2>
+                <p className="mt-4 text-base leading-7 text-moss">
+                  不需要输入姓名。点击后直接进入答题流程，系统会为本次记录自动生成匿名标识。
+                </p>
               </div>
-              <h2 className="text-2xl font-semibold text-ink">输入用户名</h2>
-              <label className="mt-6 block text-sm font-semibold text-moss" htmlFor="username">
-                用户名
-              </label>
-              <input
-                id="username"
-                value={username}
-                onChange={(event) => setUsername(event.target.value)}
-                maxLength={40}
-                className="glass-field focus-ring mt-2 h-14 w-full rounded-panel px-4 text-lg text-ink outline-none"
-                placeholder="例如：小陈"
-              />
-              {error ? <p className="mt-4 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
+
+              {error ? <p className="mt-6 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
+
               <button
-                type="submit"
-                className="glass-button mt-6 inline-flex h-14 w-full items-center justify-center gap-2 rounded-panel px-5 text-base font-semibold text-ink"
+                type="button"
+                onClick={handleStart}
+                className="glass-button mt-8 inline-flex h-16 w-full items-center justify-center gap-2 rounded-panel px-5 text-lg font-semibold text-ink sm:max-w-sm"
               >
-                开始答题
+                开始测试
                 <ArrowRight size={18} />
               </button>
-            </form>
+            </div>
           </motion.section>
         ) : (
           <motion.section
@@ -185,8 +175,8 @@ export function FomoSurvey() {
             <div className="glass-panel sticky top-4 z-10 rounded-panel p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-moss">答题用户</p>
-                  <h2 className="text-2xl font-semibold text-ink">{username}</h2>
+                  <p className="text-sm text-moss">匿名测评进度</p>
+                  <h2 className="text-2xl font-semibold text-ink">已进入 FoMO 测试</h2>
                 </div>
                 <div className="text-sm font-semibold text-moss">
                   已完成 {answeredCount}/{QUESTIONS.length}，还剩 {unansweredCount} 题
@@ -212,7 +202,7 @@ export function FomoSurvey() {
                   transition={{ duration: 0.28, delay: index * 0.04 }}
                   className="glass-panel rounded-panel p-4 sm:p-6"
                 >
-                  <div className="flex flex-col gap-3 border-b soft-divider pb-5 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="soft-divider flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold tracking-[0.18em] text-coral">{dimension.englishName}</p>
                       <h3 className="mt-1 text-2xl font-semibold text-ink">{dimension.name}</h3>
