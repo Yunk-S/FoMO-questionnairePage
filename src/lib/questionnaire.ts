@@ -15,7 +15,7 @@ export const DIMENSIONS: DimensionDefinition[] = [
     name: "错失动机",
     englishName: "Missing Motivation",
     shortName: "动机",
-    description: "归属需要、社交认同等内在心理动机。",
+    description: "",
     lowFeedback: "你对社交归属的即时确认需求较低，通常不会刻意关注自己是否被朋友时刻圈在内。",
     mediumFeedback: "你会在意朋友间的社交连接，但整体仍能在多数情境中保持弹性。",
     highFeedback: "你很需要归属感，害怕被朋友排除在外，朋友的活动对你来说具有较强的接纳意义。"
@@ -37,7 +37,7 @@ export const DIMENSIONS: DimensionDefinition[] = [
     name: "错失情绪",
     englishName: "Missing Emotion",
     shortName: "情绪",
-    description: "焦虑、不安、嫉妒、后悔和失落等负性体验。",
+    description: "焦虑、不安、忮忌、后悔和失落等负性体验。",
     lowFeedback: "你情绪较平稳，看到朋友分享快乐时通常能保持松弛，较少被怕错过牵动。",
     mediumFeedback: "你会在特定情境中感到不安或失落，但这种情绪并非持续占据主导。",
     highFeedback: "看到朋友玩得开心或错过重要信息时，你容易感到焦虑、不舒服、后悔或失落。"

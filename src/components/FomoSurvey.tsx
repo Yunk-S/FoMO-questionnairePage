@@ -25,13 +25,13 @@ function hasCompleteAnswers(answers: DraftAnswers): answers is AnswerMap {
   return QUESTIONS.every((question) => Number.isInteger(answers[question.id]));
 }
 
-function createAnonymousUsername() {
-  return `匿名受试者-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+function createResponseLabel() {
+  return `测试记录-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
 export function FomoSurvey() {
   const router = useRouter();
-  const [anonymousUsername] = useState(createAnonymousUsername);
+  const [responseLabel] = useState(createResponseLabel);
   const [started, setStarted] = useState(false);
   const [answers, setAnswers] = useState<DraftAnswers>({});
   const [error, setError] = useState("");
@@ -76,7 +76,7 @@ export function FomoSurvey() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username: anonymousUsername,
+          username: responseLabel,
           answers
         })
       });
@@ -142,21 +142,11 @@ export function FomoSurvey() {
               </div>
             </div>
 
-            <div className="glass-panel flex min-h-[320px] flex-col justify-center rounded-panel p-6 sm:p-8">
-              <div className="max-w-sm">
-                <p className="text-sm font-semibold tracking-[0.22em] text-coral">ANONYMOUS MODE</p>
-                <h2 className="mt-4 text-3xl font-semibold text-ink">匿名开始测试</h2>
-                <p className="mt-4 text-base leading-7 text-moss">
-                  不需要输入姓名。点击后直接进入答题流程，系统会为本次记录自动生成匿名标识。
-                </p>
-              </div>
-
-              {error ? <p className="mt-6 rounded-panel bg-coral/10 px-4 py-3 text-sm text-coral">{error}</p> : null}
-
+            <div className="glass-panel flex min-h-[240px] items-center justify-center rounded-panel p-6 sm:p-8">
               <button
                 type="button"
                 onClick={handleStart}
-                className="glass-button mt-8 inline-flex h-16 w-full items-center justify-center gap-2 rounded-panel px-5 text-lg font-semibold text-ink sm:max-w-sm"
+                className="glass-button inline-flex h-16 w-full max-w-sm items-center justify-center gap-2 rounded-panel px-6 text-lg font-semibold text-ink"
               >
                 开始测试
                 <ArrowRight size={18} />
@@ -175,7 +165,7 @@ export function FomoSurvey() {
             <div className="glass-panel sticky top-4 z-10 rounded-panel p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm text-moss">匿名测评进度</p>
+                  <p className="text-sm text-moss">测试进度</p>
                   <h2 className="text-2xl font-semibold text-ink">已进入 FoMO 测试</h2>
                 </div>
                 <div className="text-sm font-semibold text-moss">
@@ -206,7 +196,6 @@ export function FomoSurvey() {
                     <div>
                       <p className="text-sm font-semibold tracking-[0.18em] text-coral">{dimension.englishName}</p>
                       <h3 className="mt-1 text-2xl font-semibold text-ink">{dimension.name}</h3>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-moss">{dimension.description}</p>
                     </div>
                     <div className="glass-card rounded-panel px-4 py-3 text-sm font-semibold text-moss">
                       当前 {getDimensionDraftScore(answers, dimension.id)}/20
