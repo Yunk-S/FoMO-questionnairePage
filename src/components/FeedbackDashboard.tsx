@@ -1,7 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BarChart3, Clock, Eye, Loader2, LockKeyhole, RefreshCw, ShieldCheck } from "lucide-react";
+import {
+  BarChart3,
+  CheckSquare,
+  Clock,
+  Eye,
+  Loader2,
+  LockKeyhole,
+  RefreshCw,
+  ShieldCheck,
+  Square,
+  Trash2
+} from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DIMENSIONS } from "@/lib/questionnaire";
@@ -27,46 +38,55 @@ export function FeedbackDashboard() {
   const [records, setRecords] = useState<ResponseListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState("等待连接");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deletingIds, setDeletingIds] = useState<string[]>([]);
 
-  const loadResponses = useCallback(async (token = adminToken) => {
-    if (!token) {
-      setRecords([]);
-      setState("locked");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/admin/responses", {
-        cache: "no-store",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const data = (await response.json()) as { responses?: ResponseListItem[]; error?: string };
-
-      if (response.status === 401) {
-        setAdminToken(null);
-        setState("locked");
+  const loadResponses = useCallback(
+    async (token = adminToken) => {
+      if (!token) {
         setRecords([]);
+        setSelectedIds([]);
+        setState("locked");
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(data.error || "读取统计失败");
-      }
+      setLoading(true);
+      setError("");
 
-      setRecords(data.responses ?? []);
-      setState("ready");
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "读取统计失败");
-      setState("error");
-    } finally {
-      setLoading(false);
-    }
-  }, [adminToken]);
+      try {
+        const response = await fetch("/api/admin/responses", {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        const data = (await response.json()) as { responses?: ResponseListItem[]; error?: string };
+
+        if (response.status === 401) {
+          setAdminToken(null);
+          setState("locked");
+          setRecords([]);
+          setSelectedIds([]);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || "读取统计失败");
+        }
+
+        const nextRecords = data.responses ?? [];
+        setRecords(nextRecords);
+        setSelectedIds((current) => current.filter((id) => nextRecords.some((record) => record.id === id)));
+        setState("ready");
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "读取统计失败");
+        setState("error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [adminToken]
+  );
 
   useEffect(() => {
     if (state !== "ready" || !adminToken) {
@@ -103,6 +123,9 @@ export function FeedbackDashboard() {
     return { count, average, highCount };
   }, [records]);
 
+  const isAllSelected = records.length > 0 && selectedIds.length === records.length;
+  const isDeleting = deletingIds.length > 0;
+
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -128,6 +151,54 @@ export function FeedbackDashboard() {
       setState("locked");
     } finally {
       setLoading(false);
+    }
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(isAllSelected ? [] : records.map((record) => record.id));
+  }
+
+  function toggleSelectOne(id: string) {
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  async function deleteRecords(ids: string[]) {
+    if (!adminToken || ids.length === 0) {
+      return;
+    }
+
+    setDeletingIds(ids);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/responses", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`
+        },
+        body: JSON.stringify({ ids })
+      });
+      const data = (await response.json()) as { deletedIds?: string[]; error?: string };
+
+      if (response.status === 401) {
+        setAdminToken(null);
+        setState("locked");
+        setRecords([]);
+        setSelectedIds([]);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || "删除记录失败");
+      }
+
+      setRecords((current) => current.filter((record) => !ids.includes(record.id)));
+      setSelectedIds((current) => current.filter((id) => !ids.includes(id)));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "删除记录失败");
+    } finally {
+      setDeletingIds([]);
     }
   }
 
@@ -159,7 +230,7 @@ export function FeedbackDashboard() {
             {loading ? <Loader2 className="animate-spin" size={18} /> : <ShieldCheck size={18} />}
             进入反馈页
           </button>
-          <Link href="/" className="mt-5 inline-block text-sm font-semibold text-moss focus-ring rounded-panel">
+          <Link href="/" className="focus-ring mt-5 inline-block rounded-panel text-sm font-semibold text-moss">
             返回问卷
           </Link>
         </form>
@@ -202,13 +273,38 @@ export function FeedbackDashboard() {
       </section>
 
       <section className="glass-panel mt-5 overflow-hidden rounded-panel">
-        <div className="border-b soft-divider p-5">
+        <div className="soft-divider flex flex-col gap-3 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-2xl font-semibold text-ink">答题记录</h2>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              disabled={records.length === 0 || isDeleting}
+              className="glass-button inline-flex min-h-10 items-center justify-center gap-2 rounded-panel px-4 text-sm font-semibold text-moss disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isAllSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+              {isAllSelected ? "取消全选" : "全选"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void deleteRecords(selectedIds)}
+              disabled={selectedIds.length === 0 || isDeleting}
+              className="glass-button inline-flex min-h-10 items-center justify-center gap-2 rounded-panel px-4 text-sm font-semibold text-coral disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isDeleting && selectedIds.every((id) => deletingIds.includes(id)) ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <Trash2 size={16} />
+              )}
+              删除选中
+            </button>
+          </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[980px] border-collapse text-left text-sm">
             <thead className="bg-white/20 text-moss backdrop-blur-md">
               <tr>
+                <th className="px-5 py-4 font-semibold">选择</th>
                 <th className="px-5 py-4 font-semibold">用户</th>
                 <th className="px-5 py-4 font-semibold">提交时间</th>
                 <th className="px-5 py-4 font-semibold">总分</th>
@@ -218,42 +314,70 @@ export function FeedbackDashboard() {
                   </th>
                 ))}
                 <th className="px-5 py-4 font-semibold">报告摘要</th>
-                <th className="px-5 py-4 font-semibold">详情</th>
+                <th className="px-5 py-4 font-semibold">操作</th>
               </tr>
             </thead>
             <tbody>
               {records.length === 0 ? (
                 <tr>
-                  <td className="px-5 py-8 text-center text-moss" colSpan={9}>
+                  <td className="px-5 py-8 text-center text-moss" colSpan={10}>
                     暂无答题记录
                   </td>
                 </tr>
               ) : (
-                records.map((record) => (
-                  <tr key={record.id} className="border-t soft-divider align-top">
-                    <td className="px-5 py-4 font-semibold text-ink">{record.username}</td>
-                    <td className="px-5 py-4 text-moss">{formatDate(record.created_at)}</td>
-                    <td className="px-5 py-4 font-semibold text-ink">
-                      {record.total_score}
-                      <span className="ml-1 text-xs text-moss">/80</span>
-                    </td>
-                    {DIMENSIONS.map((dimension) => (
-                      <td key={dimension.id} className="px-5 py-4 text-moss">
-                        {record.dimension_scores[dimension.id]}/20
+                records.map((record) => {
+                  const checked = selectedIds.includes(record.id);
+                  const deleting = deletingIds.includes(record.id);
+
+                  return (
+                    <tr key={record.id} className="soft-divider border-t align-top">
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelectOne(record.id)}
+                          disabled={deleting || isDeleting}
+                          className="glass-button inline-flex h-10 w-10 items-center justify-center rounded-panel text-moss disabled:cursor-not-allowed disabled:opacity-50"
+                          aria-pressed={checked}
+                          aria-label={checked ? "取消选择" : "选择记录"}
+                        >
+                          {checked ? <CheckSquare size={16} /> : <Square size={16} />}
+                        </button>
                       </td>
-                    ))}
-                    <td className="max-w-xs px-5 py-4 leading-6 text-moss">{record.report.summary}</td>
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/feedback/${record.id}`}
-                        className="glass-button inline-flex min-h-10 items-center gap-2 rounded-panel px-3 font-semibold text-moss"
-                      >
-                        <Eye size={16} />
-                        查看
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                      <td className="px-5 py-4 font-semibold text-ink">{record.username}</td>
+                      <td className="px-5 py-4 text-moss">{formatDate(record.created_at)}</td>
+                      <td className="px-5 py-4 font-semibold text-ink">
+                        {record.total_score}
+                        <span className="ml-1 text-xs text-moss">/80</span>
+                      </td>
+                      {DIMENSIONS.map((dimension) => (
+                        <td key={dimension.id} className="px-5 py-4 text-moss">
+                          {record.dimension_scores[dimension.id]}/20
+                        </td>
+                      ))}
+                      <td className="max-w-xs px-5 py-4 leading-6 text-moss">{record.report.summary}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/feedback/${record.id}`}
+                            className="glass-button inline-flex min-h-10 items-center gap-2 rounded-panel px-3 font-semibold text-moss"
+                          >
+                            <Eye size={16} />
+                            查看
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => void deleteRecords([record.id])}
+                            disabled={deleting || isDeleting}
+                            className="glass-button inline-flex min-h-10 items-center gap-2 rounded-panel px-3 font-semibold text-coral disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                            删除
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
